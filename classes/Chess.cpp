@@ -51,6 +51,7 @@ void Chess::setUpBoard()
     startGame();
 }
 
+// capitals are white and lower are black pieces 
 void Chess::FENtoBoard(const std::string& fen) {
     // convert a FEN string to a board
     // FEN is a space delimited string with 6 fields
@@ -61,6 +62,59 @@ void Chess::FENtoBoard(const std::string& fen) {
     // 3: castling availability (KQkq or -)
     // 4: en passant target square (in algebraic notation, or -)
     // 5: halfmove clock (number of halfmoves since the last capture or pawn advance)
+    _grid->forEachSquare([](ChessSquare* square, int x, int y) {
+        square->destroyBit();
+    });
+
+    std::string placement = fen.substr(0, fen.find(' '));
+
+    int row = 0;
+    int col = 0;
+
+    // move through character in the fen string
+    for (char spot : placement) {
+        // after a / meanns we are in a new row
+        if (spot == '/') {
+            row++;
+            col = 0;
+            continue;
+        }
+        // numbers mean empty spaces so skip
+        if (isdigit(spot)) {
+            col += spot - '0'; // ascii trick to keep track of column
+            continue;
+        }
+
+        int playerNumber = isupper(spot) ? 0 : 1; // white : black
+        ChessPiece pieceType;
+
+        // get the piece in accordance to letter
+        switch (tolower(spot)) {
+            case 'p': pieceType = Pawn; break;
+            case 'n': pieceType = Knight; break;
+            case 'b': pieceType = Bishop; break;
+            case 'r': pieceType = Rook; break;
+            case 'q': pieceType = Queen; break;
+            case 'k': pieceType = King; break;
+            default: continue;
+        }
+
+        int gridY = 7 - row; 
+        int gridX = col;
+        
+        // get the piece example: 0, k = white king
+        Bit* piece = PieceForPlayer(playerNumber, pieceType);
+        
+        auto square = _grid->getSquare(gridX, gridY);
+        // check if square exists and place piece on square, set square as parent and move the piece to it 
+        if (square) {
+            square->setBit(piece);
+            piece->setParent(square);
+            piece->moveTo(square->getPosition());
+        }
+
+        col++;
+    }
 }
 
 bool Chess::actionForEmptyHolder(BitHolder &holder)
