@@ -5,6 +5,9 @@
 Chess::Chess()
 {
     _grid = new Grid(8, 8);
+    for(int i=0; i<64; i++) {
+        _knightBitboards[i] = generateKnightMoveBitboard(i);
+    }
 }
 
 Chess::~Chess()
@@ -192,4 +195,34 @@ void Chess::setStateString(const std::string &s)
             square->setBit(nullptr);
         }
     });
+}
+
+void Chess::generateKnightMoves(std::vector<BitMove>& moves, BitBoard knightBoard, uint64_t emptySquares) {
+    knightBoard.forEachBit([&](int fromSquare) {
+        BitBoard moveBitboard = BitBoard(_knightBitboards[fromSquare].getData() & emptySquares);
+        moveBitboard.forEachBit([&](int toSquare) {
+           moves.emplace_back(fromSquare, toSquare, Knight);
+        });
+    });
+}
+
+BitBoard Chess::generateKnightMoveBitboard(int square) {
+    BitBoard bitboard = 0ULL;
+    int rank = square / 8;
+    int file = square % 8;
+
+    std::pair<int, int> knightOffsets[] = {
+        { 2, 1 }, { 2, -1 }, { -2, 1 }, { -2, -1 },
+        { 1, 2 }, { 1, -2 }, { -1, 2 }, { -1, -2 }
+    };
+
+    constexpr uint64_t oneBit = 1;
+    for (auto [dr, df] : knightOffsets) {
+        int r = rank + dr, f = file + df;
+        if (r >= 0 && r < 8 && f >= 0 && f < 8) {
+            bitboard |= oneBit << (r * 8 + f);
+        }
+    }
+    
+    return bitboard;
 }
